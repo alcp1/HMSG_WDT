@@ -23,7 +23,8 @@ extern "C" {
 #define DEBUG_ON
 #define DEBUG_VERSION
 
-/* I2C */
+/* MANAGER */
+#define DEBUG_MANAGER_ERRORS
 
     
 //----------------------------------------------------------------------------//

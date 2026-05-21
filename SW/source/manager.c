@@ -13,6 +13,8 @@
 #include <unistd.h>
 #include <stdbool.h>
 #include <pthread.h>
+#include <time.h>
+#include <errno.h>
 #include "app.h"
 #include "debug.h"
 #include "manager.h"
@@ -44,26 +46,80 @@ vp_thread_t vp_thread[NUMBER_OF_THREADS] =
 //----------------------------------------------------------------------------//
 // INTERNAL FUNCTIONS - AUXILIARY
 //----------------------------------------------------------------------------//
+// Sleep 1s - Can only be called by a single thread
+void managerDelayWDT01(void)
+{
+    // 1 second sleep
+    struct timespec req = { .tv_sec = 1, .tv_nsec = 0 };
+    struct timespec rem;
+    int ret;
+    // 1s loop
+    while((ret = clock_nanosleep(CLOCK_MONOTONIC, 0, &req, &rem)) != 0)
+    {
+        if (ret == EINTR) 
+        {
+            // Interrupted by a signal:
+            // update 'req' to sleep for the remaining time
+            req = rem; 
+        }
+        else
+        {
+            #ifdef DEBUG_MANAGER_ERRORS
+            debug_print("MANAGER: managerDelay1s Error = %d!\n", ret);
+            #endif
+            break;
+        }
+    }
+}
 
+// Sleep 50ms - Can only be called by a single thread
+void managerDelayWDT02(void)
+{
+    // 50ms sleep
+    struct timespec req = { .tv_sec = 0, .tv_nsec = 50000000 };
+    struct timespec rem;
+    int ret;
+    // 1s loop
+    while((ret = clock_nanosleep(CLOCK_MONOTONIC, 0, &req, &rem)) != 0)
+    {
+        if (ret == EINTR) 
+        {
+            // Interrupted by a signal:
+            // update 'req' to sleep for the remaining time
+            req = rem; 
+        }
+        else
+        {
+            #ifdef DEBUG_MANAGER_ERRORS
+            debug_print("MANAGER: managerDelay50ms Error = %d!\n", ret);
+            #endif
+            break;
+        }
+    }
+}
+
+int test1 = 0;
+int test50 = 0;
 //----------------------------------------------------------------------------//
 // INTERNAL FUNCTIONS - THREADS
 //----------------------------------------------------------------------------//
 /* THREAD - 1 second */
 void* managerHandleWDT01(void *arg)
-{        
+{
     while(1)
     {        
-        // 1s loop
-        sleep(1);
+        // Sleep 1s
+        managerDelayWDT01();
     }
 }
+
 /* THREAD - 50ms */
 void* managerHandleWDT02(void *arg)
-{        
+{
     while(1)
-    {        
-        // 50ms loop
-        usleep(50000);
+    {
+        // Sleep 50ms
+        managerDelayWDT02();
     }
 }
 
