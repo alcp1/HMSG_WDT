@@ -64,3 +64,10 @@ int debug_end(void);
  * \return  none
  */
 void debug_print(const char * format, ...);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* DEBUG_H */
+
