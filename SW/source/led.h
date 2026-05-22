@@ -15,20 +15,32 @@ extern "C" {
 #endif
 
 #include <stdint.h>
+
+//----------------------------------------------------------------------------//
+// EXTERNAL DEFINITIONS
+//----------------------------------------------------------------------------//
+typedef enum
+{
+    LED_TRANS_SIG_I2C = 0,
+    LED_TRANS_SIG_HMSG
+} led_trans_t;
+
 //----------------------------------------------------------------------------//
 // EXTERNAL TYPES
 //----------------------------------------------------------------------------//
 // LED Config frame
 typedef struct  
 {
-    uint8_t activeDuty;
-    uint8_t activeTimeON;
-    uint8_t activeTimePER;
-    uint8_t transmitDuty;
-    uint8_t transmitTimeON;
-    uint8_t transmitTimePER;
+    uint16_t activeDuty;
+    uint16_t activeTimeON;
+    uint16_t activeTimePER;
+    uint16_t transmitI2CDuty;
+    uint16_t transmitI2CTimeON;
+    uint16_t transmitI2CTimePER;
+    uint16_t transmitHMSGDuty;
+    uint16_t transmitHMSGTimeON;
+    uint16_t transmitHMSGTimePER;
 } ledConfig;
-
 
 //----------------------------------------------------------------------------//
 // EXTERNAL FUNCTIONS
@@ -48,6 +60,30 @@ extern void led_init(void);
  * \return  nothing
  */
 extern void led_periodic(void);
+
+/**
+ * Set LED Config.
+ * 
+ * \param   config LED configuration
+ * \return  nothing
+ */
+extern void led_setLedConfig(ledConfig* config);
+
+/**
+ * Get LED Config.
+ * 
+ * \param   config LED configuration
+ * \return  nothing
+ */
+extern void led_getLedConfig(ledConfig* config);
+
+/**
+ * Request LED Transition signaling.
+ * 
+ * \param   nothing
+ * \return  nothing
+ */
+extern void led_requestTransmitSignaling(led_trans_t type);
 
 #ifdef __cplusplus
 }

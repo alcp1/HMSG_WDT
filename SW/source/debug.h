@@ -26,6 +26,8 @@ extern "C" {
 /* MANAGER */
 #define DEBUG_MANAGER_ERRORS
 
+/* LED */
+#define DEBUG_LED_ERRORS
     
 //----------------------------------------------------------------------------//
 // EXTERNAL TYPES

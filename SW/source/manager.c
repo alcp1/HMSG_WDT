@@ -65,18 +65,18 @@ void managerDelayWDT01(void)
         else
         {
             #ifdef DEBUG_MANAGER_ERRORS
-            debug_print("MANAGER: managerDelay1s Error = %d!\n", ret);
+            debug_print("MANAGER: managerDelayWDT01 Error = %d!\n", ret);
             #endif
             break;
         }
     }
 }
 
-// Sleep 50ms - Can only be called by a single thread
+// Sleep 20ms - Can only be called by a single thread
 void managerDelayWDT02(void)
 {
-    // 50ms sleep
-    struct timespec req = { .tv_sec = 0, .tv_nsec = 50000000 };
+    // 20ms sleep
+    struct timespec req = { .tv_sec = 0, .tv_nsec = 20000000 };
     struct timespec rem;
     int ret;
     // 1s loop
@@ -91,15 +91,13 @@ void managerDelayWDT02(void)
         else
         {
             #ifdef DEBUG_MANAGER_ERRORS
-            debug_print("MANAGER: managerDelay50ms Error = %d!\n", ret);
+            debug_print("MANAGER: managerDelayWDT02 Error = %d!\n", ret);
             #endif
             break;
         }
     }
 }
 
-int test1 = 0;
-int test50 = 0;
 //----------------------------------------------------------------------------//
 // INTERNAL FUNCTIONS - THREADS
 //----------------------------------------------------------------------------//
@@ -113,12 +111,12 @@ void* managerHandleWDT01(void *arg)
     }
 }
 
-/* THREAD - 50ms */
+/* THREAD - 20ms */
 void* managerHandleWDT02(void *arg)
 {
     while(1)
     {
-        // Sleep 50ms
+        // Sleep 20ms
         managerDelayWDT02();
     }
 }
