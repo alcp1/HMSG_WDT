@@ -51,6 +51,13 @@ typedef union
     } fields;
 } i2cRegisters;
 
+typedef enum
+{
+    I2C_STATUS_OK = 0,
+    I2C_STATUS_PENDING,
+    I2C_STATUS_ERROR,
+} i2c_status_t;
+
 //----------------------------------------------------------------------------//
 // EXTERNAL VARIABLES
 //----------------------------------------------------------------------------//
@@ -65,6 +72,51 @@ typedef union
  * \return  nothing
  */
 extern void i2c_init(void);
+
+/**
+ * I2C periodic task.
+ * 
+ * \param   nothing
+ * \return  nothing
+ */
+extern void i2c_periodic(void);
+
+/**
+ * I2C start read (non-blocking)
+ * 
+ * \param[in]   address First Register Address to be read.
+ * \param[out]  buffer  Buffer to be filled with read data.
+ * \param[in]   size    number of bytes to be read.
+ * \return  if request was successfull
+ * \retval  true    read was successfull
+ * \retval  false   read was not successfull (it was busy)
+ */
+extern bool i2c_startRead(uint8_t address, uint8_t *buffer, uint8_t size);
+
+/**
+ * I2C start write (non-blocking)
+ * 
+ * \param[in]   address First Register Address to be written.
+ * \param[out]  buffer  Buffer with data to be written.
+ * \param[in]   size    number of bytes to be written.
+ * \return  if request was successfull
+ * \retval  true    write was successfull
+ * \retval  false   write was not successfull (it was busy)
+ */
+extern bool i2c_startWrite(uint8_t address, uint8_t *buffer, uint8_t size);
+
+/**
+ * I2C get read / write status
+ * 
+ * \param   nothing
+ * \return  status of the read / write command
+ * \retval  I2C_STATUS_OK   read/write successfull
+ * \retval  I2C_STATUS_PENDING  read/write still ongoing
+ * \retval  I2C_STATUS_ERROR    read/write error
+ */
+extern i2c_status_t i2c_rwStatus(void);
+
+
 
 #ifdef __cplusplus
 }

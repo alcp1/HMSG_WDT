@@ -28,6 +28,8 @@
 // PWM - INTERNAL
 #define LED_DUTY_0              0 // 0%
 #define LED_DUTY_100            1000U // 100%
+// ERROR COUNTER
+#define LED_ERR_RESTART             (30000U/20) // 30s @ 20ms period
 // STARTUP STATE TIMING
 #define LED_STARTUP_EXPORT_DELAY    (300U/20) // 300ms @ 20ms period
 // INIT STATE TIMING
@@ -59,6 +61,11 @@ enum
 //----------------------------------------------------------------------------//
 // INTERNAL GLOBAL VARIABLES
 //----------------------------------------------------------------------------//
+// PWM fd
+static int g_fdPWM;
+// Error
+static bool g_ledErr;
+static uint16_t g_ledErrCounter;
 // State
 static uint8_t g_state;
 // Startup timeout
@@ -82,29 +89,85 @@ static ledConfig g_ledConfig;
 //----------------------------------------------------------------------------//
 // INTERNAL FUNCTIONS
 //----------------------------------------------------------------------------//
-void write_sysfs(const char *file_path, const char *value);
+int open_sysfs(const char *file_path);
+void write_sysfs(int fd, const char *value);
+void write_and_close_sysfs(const char *file_path, const char *value);
 static bool startupLEDPWM(void);
 static void setLEDPWM(uint16_t g_duty);
 
-// Auxiliary function to write a string to a sysfs file
-void write_sysfs(const char *file_path, const char *value) 
+// Auxiliary function to open a sysfs file and return its fd
+int open_sysfs(const char *file_path)
 {
     // Open as Write-Only for PWM
-    int fd = open(file_path, O_WRONLY);
+    int fd;
+    fd = open(file_path, O_WRONLY);
     if (fd == -1) 
     {
+        // Set error
+        g_ledErr = true;
         #ifdef DEBUG_LED_ERRORS
         debug_print("LED: write_sysfs open error on path = %s!\n", file_path);
         #endif
     }
+    return fd;
+}
+
+// Auxiliary function to write a string to a sysfs file without closing it.
+void write_sysfs(int fd, const char *value)
+{
+    ssize_t bytes_written;
+    if(fd != -1)
+    {
+        bytes_written = write(fd, value, strlen(value));
+        if(bytes_written != strlen(value))
+        {
+            // Set error
+            g_ledErr = true;
+            #ifdef DEBUG_LED_ERRORS
+            debug_print("LED: write_sysfs write error - bytes written: %d, \
+                expected: %d!\n", bytes_written, strlen(value));
+            #endif
+            // Close fd
+            close(fd);
+            fd = -1;
+        }
+    }
+}
+
+// Auxiliary function to write a string to a sysfs file and close the file
+void write_and_close_sysfs(const char *file_path, const char *value) 
+{
+    // Open as Write-Only for PWM
+    int fd;
+    ssize_t bytes_written;
+    fd = open(file_path, O_WRONLY);
+    if (fd == -1) 
+    {
+        // Set error
+        g_ledErr = true;
+        #ifdef DEBUG_LED_ERRORS
+        debug_print("LED: write_and_close_sysfs open error on path = %s!\n", 
+            file_path);
+        #endif
+    }
     else
     {
-        write(fd, value, strlen(value));
+        bytes_written = write(fd, value, strlen(value));
+        if(bytes_written != strlen(value))
+        {
+            // Set error
+            g_ledErr = true;
+            #ifdef DEBUG_LED_ERRORS
+            debug_print("LED: write_and_close_sysfs write error - bytes \
+                written: %d, expected: %d!\n", bytes_written, strlen(value));
+            #endif
+        }
         close(fd);
     }    
 }
 
 // Startup PWM output for LED 2 - PWM0 / GPIO12
+// Set PWM fd - file descriptor
 // Return true when finished
 static bool startupLEDPWM(void)
 {
@@ -114,7 +177,7 @@ static bool startupLEDPWM(void)
         //------------------------------------------------
         // 1. Export the PWM channel 0 (GPIO12 - LED 2)
         //------------------------------------------------
-        write_sysfs(PWM_EXPORT_PATH, LED_SYS_PWM_CHANNEL);
+        write_and_close_sysfs(PWM_EXPORT_PATH, LED_SYS_PWM_CHANNEL);
         g_ledStartupTimer++;
     }
     else if(g_ledStartupTimer <= LED_STARTUP_EXPORT_DELAY)
@@ -128,15 +191,16 @@ static bool startupLEDPWM(void)
         //------------------------------------------------
         // 2. Set Period (Frequency) in nanoseconds
         //------------------------------------------------        
-        write_sysfs(PWM_PERIOD_PATH, LED_SYS_PERIOD_STR);
+        write_and_close_sysfs(PWM_PERIOD_PATH, LED_SYS_PERIOD_STR);
         //------------------------------------------------
         // 3. Set Duty Cycle in nanoseconds
         //------------------------------------------------
-        write_sysfs(PWM_DUTY_PATH, LED_SYS_DUTY_0_STR);
+        g_fdPWM = open_sysfs(PWM_DUTY_PATH);
+        write_sysfs(g_fdPWM, LED_SYS_DUTY_0_STR);
         //------------------------------------------------
         // 4. Enable the outputs
         //------------------------------------------------
-        write_sysfs(PWM_ENABLE_PATH, LED_SYS_ENABLE);
+        write_and_close_sysfs(PWM_ENABLE_PATH, LED_SYS_ENABLE);
         // Finished - return true
         ret = true;        
     }
@@ -153,7 +217,7 @@ static void setLEDPWM(uint16_t g_duty)
     // Set buffer with duty cycle as a string
     snprintf(buffer, sizeof(buffer), "%" PRIu32, duty_ns);
     // Write to PWM
-    write_sysfs(PWM_DUTY_PATH, buffer);
+    write_sysfs(g_fdPWM, buffer);
 }
 
 
@@ -166,6 +230,11 @@ void led_init(void)
     //------------------------
     // Init variables
     //------------------------
+    // FD
+    g_fdPWM = -1;
+    // Error
+    g_ledErr = false;
+    g_ledErrCounter = 0;
     // Initial State (when module starts, activating PWM)
     g_state = LED_STATE_STARTUP;
     g_ledStartupTimer = 0;
@@ -192,12 +261,10 @@ void led_init(void)
     // Clear transmit request
     g_transmitRequested = false;
     g_signalingType = LED_TRANS_SIG_I2C;
-    // Init LED with 0% duty
-    setLEDPWM(g_duty);
 }
 
 /* Periodic function */
-void LED_SYS_PERIOD_STRic(void)
+void led_periodic(void)
 {
     uint8_t duty_increment;      
     // Check mode set
@@ -306,6 +373,19 @@ void LED_SYS_PERIOD_STRic(void)
     if(g_duty != g_lastDuty)
     {
         setLEDPWM(g_duty);
+    }
+    g_lastDuty = g_duty;
+    // Check for error
+    if(g_ledErr)
+    {
+        g_ledErrCounter++;
+        if(g_ledErrCounter >= LED_ERR_RESTART)
+        {
+            // Restart LED module
+            g_ledErrCounter = 0;
+            g_ledErr = false;
+            led_init();
+        }
     }
 }
 

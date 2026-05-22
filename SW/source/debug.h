@@ -19,6 +19,9 @@ extern "C" {
 
 /* LED */
 #define DEBUG_LED_ERRORS
+
+/* I2C */
+#define DEBUG_I2C_ERRORS
     
 //----------------------------------------------------------------------------//
 // EXTERNAL TYPES
