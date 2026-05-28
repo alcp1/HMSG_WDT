@@ -13,7 +13,7 @@
 //----------------------------------------------------------------------------//
 // INTERNAL DEFINITIONS
 //----------------------------------------------------------------------------//
-#define NUMBER_OF_THREADS   2
+#define NUMBER_OF_THREADS   3
 
 //----------------------------------------------------------------------------//
 // INTERNAL TYPES
@@ -25,6 +25,7 @@ typedef void* (*vp_thread_t)( void *arg );
 //----------------------------------------------------------------------------//
 void* managerHandleWDT01(void *arg);
 void* managerHandleWDT02(void *arg);
+void* managerHandleWDT03(void *arg);
 
 //----------------------------------------------------------------------------//
 // INTERNAL GLOBAL VARIABLES
@@ -32,7 +33,9 @@ void* managerHandleWDT02(void *arg);
 pthread_t pt_threadID[NUMBER_OF_THREADS];
 vp_thread_t vp_thread[NUMBER_OF_THREADS] = 
 {   managerHandleWDT01, 
-    managerHandleWDT02};
+    managerHandleWDT02,
+    managerHandleWDT03
+};
 
 //----------------------------------------------------------------------------//
 // INTERNAL FUNCTIONS - AUXILIARY
@@ -89,6 +92,32 @@ void managerDelayWDT02(void)
     }
 }
 
+// Sleep 10ms - Can only be called by a single thread
+void managerDelayWDT03(void)
+{
+    // 10ms sleep
+    struct timespec req = { .tv_sec = 0, .tv_nsec = 10000000 };
+    struct timespec rem;
+    int ret;
+    // 1s loop
+    while((ret = clock_nanosleep(CLOCK_MONOTONIC, 0, &req, &rem)) != 0)
+    {
+        if (ret == EINTR) 
+        {
+            // Interrupted by a signal:
+            // update 'req' to sleep for the remaining time
+            req = rem; 
+        }
+        else
+        {
+            #ifdef DEBUG_MANAGER_ERRORS
+            debug_print("MANAGER: managerDelayWDT03 Error = %d!\n", ret);
+            #endif
+            break;
+        }
+    }
+}
+
 //----------------------------------------------------------------------------//
 // INTERNAL FUNCTIONS - THREADS
 //----------------------------------------------------------------------------//
@@ -109,6 +138,16 @@ void* managerHandleWDT02(void *arg)
     {
         // Sleep 20ms
         managerDelayWDT02();
+    }
+}
+
+/* THREAD - 10ms */
+void* managerHandleWDT03(void *arg)
+{
+    while(1)
+    {
+        // Sleep 10ms
+        managerDelayWDT03();
     }
 }
 

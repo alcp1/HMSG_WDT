@@ -82,7 +82,7 @@ extern void i2c_init(void);
 extern void i2c_periodic(void);
 
 /**
- * I2C start read (non-blocking)
+ * I2C start read request
  * 
  * \param[in]   address First Register Address to be read.
  * \param[out]  buffer  Buffer to be filled with read data.
@@ -94,7 +94,7 @@ extern void i2c_periodic(void);
 extern bool i2c_startRead(uint8_t address, uint8_t *buffer, uint8_t size);
 
 /**
- * I2C start write (non-blocking)
+ * I2C start write request
  * 
  * \param[in]   address First Register Address to be written.
  * \param[out]  buffer  Buffer with data to be written.
