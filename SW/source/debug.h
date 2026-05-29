@@ -22,6 +22,7 @@ extern "C" {
 
 /* I2C */
 #define DEBUG_I2C_ERRORS
+#define DEBUG_I2C_PACKET_ERRORS
     
 //----------------------------------------------------------------------------//
 // EXTERNAL TYPES

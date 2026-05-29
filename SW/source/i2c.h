@@ -91,7 +91,7 @@ extern void i2c_periodic(void);
  * \retval  true    read was successfull
  * \retval  false   read was not successfull (it was busy)
  */
-extern bool i2c_startRead(uint8_t address, uint8_t *buffer, uint8_t size);
+extern void i2c_startRead(uint8_t address, uint8_t *buffer, uint8_t size);
 
 /**
  * I2C start write request
@@ -103,7 +103,7 @@ extern bool i2c_startRead(uint8_t address, uint8_t *buffer, uint8_t size);
  * \retval  true    write was successfull
  * \retval  false   write was not successfull (it was busy)
  */
-extern bool i2c_startWrite(uint8_t address, uint8_t *buffer, uint8_t size);
+extern void i2c_startWrite(uint8_t address, uint8_t *buffer, uint8_t size);
 
 /**
  * I2C get read / write status
