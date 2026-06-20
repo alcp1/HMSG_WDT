@@ -78,12 +78,12 @@ This completely frees the PL011 for GPIO pins 14 and 15.
 sudo nano /boot/firmware/config.txt
 ```
 - STEP 2: Add the following lines to the end of the file:
-```
-sudo systemctl disable hciuart
+```text
+dtoverlay=disable-bt
 ```
 - STEP 3: Disable the Bluetooth modem service. Run on terminal:
 ```bash
-sudo nano /boot/firmware/config.txt
+sudo systemctl disable hciuart
 ```
 
 #### Option B: Swap Bluetooth to Mini-UART
