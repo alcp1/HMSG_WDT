@@ -42,17 +42,17 @@ _You should see: "/dev/i2c-1_"
 ```bash
 sudo i2cdetect -y 1
 ```
-_This command will display a grid with any connected I2C devices. ATTiny on the HAT should appear on address 0x1E._
+_This command will display a grid with any connected I2C devices. ATtiny on the HAT should appear on address 0x1E._
 
 > REMARK: See below the I2C Pins used by the HAT:
 
-| Raspberry Pi GPIO | Function | Header Pin | ATTiny402 Port | ATTiny402 Pin |
+| Raspberry Pi GPIO | Function | Header Pin | ATtiny402 Port | ATtiny402 Pin |
 |-|-|-|-|-|
 |GPIO2|SDA1|3|PA1|4|
 |GPIO3|SCL1|5|PA2|5|
 
 ## SERIAL PORT CONFIGURATION
-The Raspberry Pi TXD0 and RXD0 are connected on the HAT to the UPDI pin of the ATTiny402 for programming it with **pymcuprog** tool.
+The Raspberry Pi TXD0 and RXD0 are connected on the HAT to the UPDI pin of the ATtiny402 for programming it with **pymcuprog** tool.
 In order to do so, the Raspberry Pi serial port has to be configured in a specific way.
 
 ### 1. Disable Serial Console
@@ -107,3 +107,81 @@ sudo reboot
 ls -l /dev/serial*
 ```
 _This command should show serial0 -> ttyAMA0 indicating the pins are now using the high-precision hardware._
+
+## ATTINY PROGRAMMING
+- STEP 1: Install Python3 and Pip
+```bash
+sudo apt update
+sudo apt install python3-pip python3-venv -y
+```
+- STEP 2: Create a Virtual Environment
+```bash
+python3 -m venv updi_env
+source updi_env/bin/activate
+```
+_You will notice your terminal prompt changes to show (updi_env), meaning any Python packages you install now will live safely inside this folder._
+- STEP 3: Install pymcuprog
+```bash
+pip install pymcuprog
+```
+
+### Programming Environment
+Whenever you open a fresh terminal window on your Raspberry Pi and want to program your ATtiny402 again, you just need to jump back into that environment by running:
+```bash
+source ~/updi_env/bin/activate
+```
+If you ever want to leave the environment and go back to normal terminal mode, simply type:
+```bash
+deactivate
+```
+
+### pymcuprog commands
+- Ping the Device (Check Connection):
+```bash
+pymcuprog ping -d attiny402 -t uart -u /dev/ttyAMA0
+```
+_If successful, it will return the device ID and confirm that it responded._
+- Write a Hex File:
+```bash
+pymcuprog write -d attiny402 -t uart -u /dev/ttyAMA0 -f firmware.hex
+```
+- Erase the Chip
+```bash
+pymcuprog erase -d attiny402 -t uart -u /dev/ttyAMA0
+```
+> REMARK: pymcuprog defaults to 115200 baud for serial UPDI. If your wires are long or catching interference, you can slow it down by appending --clk 19200 to your command.
+
+## HW Tests
+### PWM Tests
+- STEP 1: Export Both PWM Channels. First, navigate to the system PWM directory. Because your overlay handles both channels under a single controller (pwmchip0), you need to tell the kernel to open control interfaces for both 0 and 1.
+```bash
+cd /sys/class/pwm/pwmchip0
+echo 0 | sudo tee export
+echo 1 | sudo tee export
+```
+_If you look inside the directory using ls, you will now see two new folders: pwm0 and pwm1_
+
+- STEP 2: Configure and Start PWM0 (GPIO 12) with a standard 1 kHz frequency (1,000,000ns period) and a 25% duty cycle.
+```bash
+cd /sys/class/pwm/pwmchip0/pwm0
+echo 1000000 | sudo tee period
+echo 250000 | sudo tee duty_cycle
+echo 1 | sudo tee enable
+```
+
+- STEP 3: Configure and Start PWM1 (GPIO 13) with a standard 1 kHz frequency (1,000,000ns period) and a 25% duty cycle.
+```bash
+cd /sys/class/pwm/pwmchip0/pwm1
+echo 1000000 | sudo tee period
+echo 750000 | sudo tee duty_cycle
+echo 1 | sudo tee enable
+```
+
+- STEP 4: Stop PWM0 and PWM1
+```bash
+echo 0 | sudo tee /sys/class/pwm/pwmchip0/pwm0/enable
+echo 0 | sudo tee /sys/class/pwm/pwmchip0/pwm1/enable
+cd /sys/class/pwm/pwmchip0
+echo 0 | sudo tee unexport
+echo 1 | sudo tee unexport
+```
