@@ -7,7 +7,7 @@ Raspberry Pi C code for HMSG HAT: External watchdog power cycling via I2C interf
 sudo nano /boot/firmware/config.txt
 ```
 - STEP 2: Add the following lines to the end of the file:
-```
+```text
 dtoverlay=pwm-2chan,pin=12,func=4,pin2=13,func2=4
 ```
 > REMARK: See the PWM Pins and LEDs below:
@@ -23,8 +23,19 @@ dtoverlay=pwm-2chan,pin=12,func=4,pin2=13,func2=4
 sudo raspi-config
 ```
 - STEP 2: Navigate to Interface Options (or Interfacing Options). Select **I2C** and choose **Yes** when prompted to enable the ARM I2C interface.
-
 - STEP 3: Reboot the Raspberry Pi (if not prompted on the screen)
+```bash
+sudo reboot
+```
+- STEP 4: Edit config file to enable PWM:
+```bash
+sudo nano /boot/firmware/config.txt
+```
+- STEP 5: Modify the line with i2c_arm=on to change the baud rate:
+```text
+dtparam=i2c_arm=on,i2c_arm_baudrate=20000
+```
+- STEP 6: Reboot the Raspberry Pi (if not prompted on the screen)
 ```bash
 sudo reboot
 ```
